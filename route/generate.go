@@ -113,7 +113,14 @@ func GenerateHandler(c *fiber.Ctx) error {
 	fileInfos := et.ExtractMetadata(fileFullPath)
 
 	imageDecoded, err := imaging.Open(fileFullPath)
-	imageDecoded = imaging.Rotate(imageDecoded, rotateAngle, color.Transparent)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	if rotateAngle != 0.0 {
+		imageDecoded = imaging.Rotate(imageDecoded, rotateAngle, color.Transparent)
+	}
 
 	metadataObject := MetadataType{}
 	metadataObject.DateTimeOriginal = time.Now().Format("2006:01:02 15:04:05")
