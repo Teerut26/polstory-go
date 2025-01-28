@@ -46,21 +46,21 @@ export default function App() {
                 <h1 className="text-3xl font-bold">
                     PolStory
                 </h1>
-                <form onSubmit={onSubmit} className="flex flex-col">
+                <form onSubmit={onSubmit} className="flex flex-col w-full">
                     <input type="file" name="file" accept=".jpg, .jpeg, .png, .JPEG, .JPG, .PNG" className="text-zinc-400 cursor-pointer" />
                     <div className="flex gap-2 mt-3">
                         <div className="flex flex-col w-full">
                             <div>Rotate Angle</div>
-                            <input type="number" name="rotateAngle" className="border px-2 py-1 rounded-lg focus:outline-none" placeholder="Rotate Angle" defaultValue={0} />
+                            <input type="number" name="rotateAngle" className="border px-2 py-1 rounded-lg focus:outline-none w-full" placeholder="Rotate Angle" defaultValue={0} />
                         </div>
                         <div className="flex flex-col w-full">
                             <div>Scale</div>
-                            <input type="number" name="scale" className="border px-2 py-1 rounded-lg focus:outline-none" placeholder="Scale" defaultValue={1} />
+                            <input type="number" name="scale" className="border px-2 py-1 rounded-lg focus:outline-none w-full" placeholder="Scale" defaultValue={1} />
                         </div>
                     </div>
                     <button
                         disabled={isLoaded}
-                        className="px-3 py-2 bg-cyan-700 text-white mt-3 rounded-3xl hover:bg-cyan-800 cursor-pointer duration-150 disabled:opacity-50"
+                        className="px-3 py-2 bg-cyan-700 text-white mt-3 rounded-3xl hover:bg-cyan-800 cursor-pointer duration-150 disabled:opacity-50 w-full"
                     >
                         {isLoaded ? 'Generating...' : 'Generate'}
                     </button>
