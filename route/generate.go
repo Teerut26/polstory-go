@@ -40,6 +40,18 @@ func GenerateHandler(c *fiber.Ctx) error {
 	rotateAngle := 0.0
 	rotateAngle, err = strconv.ParseFloat(c.FormValue("rotateAngle"), 64)
 
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	if rotateAngle > 360.0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Rotate angle must be less than 360.0",
+		})
+	}
+
 	scale := 1.0
 	scale, err = strconv.ParseFloat(c.FormValue("scale"), 64)
 	if scale > 3.0 {
