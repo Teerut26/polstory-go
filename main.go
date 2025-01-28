@@ -33,7 +33,7 @@ func main() {
 	app := fiber.New()
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://polstory.teerut.com, http://localhost:5173",
+		AllowOrigins: "http://polstory.teerut.com, http://localhost:5173, http://teerut-server:3008",
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
 
