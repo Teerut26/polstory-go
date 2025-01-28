@@ -16,6 +16,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/fogleman/gg"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/golang/freetype/truetype"
 )
 
@@ -31,13 +32,20 @@ type MetadataType struct {
 func main() {
 	app := fiber.New()
 
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://polstory.teerut.com, http://localhost:5173",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
+
 	app.Static("/", "./web")
 
-	app.Get("/image", func(c *fiber.Ctx) error {
+	app.Post("/api/generate", func(c *fiber.Ctx) error {
 		imagePayload, err := c.FormFile("image")
 
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
 		}
 
 		rotateAngle := 0.0
@@ -45,6 +53,15 @@ func main() {
 
 		scale := 1.0
 		scale, err = strconv.ParseFloat(c.FormValue("scale"), 64)
+		if scale > 3.0 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Scale must be less than 3.0",
+			})
+		} else if scale < 0.5 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Scale must be greater than 0.5",
+			})
+		}
 
 		var (
 			canvasWidth  = 1133.0 * scale
@@ -58,19 +75,23 @@ func main() {
 		dc := gg.NewContext(int(canvasWidth), int(canvasHeight))
 		fontBytes, err := ioutil.ReadFile("fonts/SFPRODISPLAYREGULAR.ttf")
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
 		}
 		// parse font
 		f, err := truetype.Parse(fontBytes)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
 		}
 		// fill background with white
 		dc.SetColor(color.White)
 		dc.DrawRectangle(0, 0, canvasWidth, canvasHeight)
 		dc.Fill()
 
-		r, _ := regexp.Compile(`(?m)^.*\.(jpg|JPG|png|PNG)$`)
+		r, _ := regexp.Compile(`(?m)^.*\.(jpg|JPG|png|PNG|jpeg|JPEG)$`)
 
 		if !r.MatchString(imagePayload.Filename) {
 			return c.Status(fiber.StatusBadRequest).SendString("Invalid file type")
@@ -88,7 +109,9 @@ func main() {
 
 		// save file to disk
 		if err := c.SaveFile(imagePayload, fileFullPath); err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
 		}
 
 		// get file extension from the file name
@@ -104,10 +127,20 @@ func main() {
 		imageDecoded = imaging.Rotate(imageDecoded, rotateAngle, color.Transparent)
 
 		metadataObject := MetadataType{}
+		metadataObject.DateTimeOriginal = time.Now().Format("2006:01:02 15:04:05")
+		metadataObject.Model = "Unknown"
+		metadataObject.FocalLengthIn35mmFormat = "0 mm"
+		metadataObject.Aperture = 0.0
+		metadataObject.ShutterSpeed = "Unknown"
+		metadataObject.ISO = 0.0
 
 		for _, fileInfo := range fileInfos {
 			if fileInfo.Err != nil {
 				fmt.Printf("Error concerning %v: %v\n", fileInfo.File, fileInfo.Err)
+				continue
+			}
+
+			if fileInfo.Fields["DateTimeOriginal"] == nil || fileInfo.Fields["Model"] == nil || fileInfo.Fields["FocalLengthIn35mmFormat"] == nil || fileInfo.Fields["Aperture"] == nil || fileInfo.Fields["ShutterSpeed"] == nil || fileInfo.Fields["ISO"] == nil {
 				continue
 			}
 
@@ -143,13 +176,17 @@ func main() {
 		dc.SetFontFace(truetype.NewFace(f, &truetype.Options{Size: fontSize * 0.8}))
 		t, err := time.Parse("2006:01:02 15:04:05", metadataObject.DateTimeOriginal)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
 		}
 		dc.DrawString(fmt.Sprintf("%s", t.Format("Jan 2, 2006 15:04")), xOffset+6*scale, yOffset+newHeight+baseGap+45*scale)
 		imageResult := dc.Image()
 		buffer := new(bytes.Buffer)
 		if err := png.Encode(buffer, imageResult); err != nil {
-			c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+			c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+			})
 		}
 		c.Response().Header.Set("Content-Type", "image/png")
 		os.RemoveAll(fileFullPath)
