@@ -9,7 +9,9 @@ import (
 )
 
 func main() {
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		BodyLimit: 1024 * 1024 * 10, // 10mb
+	})
 
 	app.Use(cors.New(cors.Config{
 		AllowOrigins: "https://polstory.teerut.com, http://localhost:5173, http://teerut-server:3008",
