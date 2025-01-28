@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/barasher/go-exiftool"
@@ -41,13 +42,14 @@ func main() {
 	app := fiber.New()
 
 	app.Get("/image", func(c *fiber.Ctx) error {
-		// imagePayload, err := c.FormFile("image")
-		// if err != nil {
-		// 	return c.Status(fiber.StatusBadRequest).SendString(err.Error())
-		// }
+		imagePayload, err := c.FormFile("image")
 
-		// rotateAngle := 0.0
-		// rotateAngle, err = strconv.ParseFloat(c.FormValue("rotateAngle"), 64)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+
+		rotateAngle := 0.0
+		rotateAngle, err = strconv.ParseFloat(c.FormValue("rotateAngle"), 64)
 
 		dc := gg.NewContext(int(canvasWidth), int(canvasHeight))
 		fontBytes, err := ioutil.ReadFile("fonts/SFPRODISPLAYREGULAR.ttf")
@@ -64,30 +66,59 @@ func main() {
 		dc.DrawRectangle(0, 0, canvasWidth, canvasHeight)
 		dc.Fill()
 
-		// // multipart.FileHeader to image.Image
-		// imageFile, err := imagePayload.Open()
-		// if err != nil {
-		// 	return c.Status(fiber.StatusBadRequest).SendString(err.Error())
-		// }
-		// defer imageFile.Close()
-		// // multipart.File to image.Image
-		// imageDecoded, _, err := image.Decode(imageFile)
-		// if err != nil {
-		// 	return c.Status(fiber.StatusBadRequest).SendString(err.Error())
-		// }
-		// // flip image
-		// imageDecoded = imaging.Rotate(imageDecoded, rotateAngle, nil)
+		// multipart.FileHeader to image.Image
 
-		// IMG_2807.jpg
-		imageFile, err := os.Open("IMG_2807.jpg")
+		// check path exist
+		_, err = os.Stat("uploads")
+		if os.IsNotExist(err) {
+			errDir := os.MkdirAll("uploads", 0755)
+			if errDir != nil {
+				return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+			}
+		}
+
+		// check image type
+		// imageDecodedFromForm, _, err := image.Decode(imagePayload)
+		// bufferPng := new(bytes.Buffer)
+		// if err := png.Encode(bufferPng, imagePayload); err != nil {
+		// 	return nil, errors.Wrap(err, "unable to encode png")
+		// }
+
+		// fileNamePayload := fmt.Sprintf("uploads/%s.png", time.Now().Format("20060102150405"))
+
+		// err = c.SaveFile(imagePayload, fileNamePayload)
+
+		imageFile, err := imagePayload.Open()
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 		}
+		defer imageFile.Close()
+
+		// multipart.File to image.Image
 		imageDecoded, _, err := image.Decode(imageFile)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 		}
-		imageDecoded = imaging.Rotate(imageDecoded, 270, color.Transparent)
+
+		// convert image to png
+		bufferPng := new(bytes.Buffer)
+		if err := png.Encode(bufferPng, imageDecoded); err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
+		}
+
+		// flip image
+		imageDecoded = imaging.Rotate(imageDecoded, rotateAngle, nil)
+
+		// // Open Fle
+		// imageFile, err := os.Open("IMG_2807.jpg")
+		// if err != nil {
+		// 	return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+		// }
+		// imageDecoded, _, err := image.Decode(imageFile)
+		// if err != nil {
+		// 	return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+		// }
+		// imageDecoded = imaging.Rotate(imageDecoded, 270, color.Transparent)
 
 		// Get image metadata
 		et, err := exiftool.NewExiftool()
