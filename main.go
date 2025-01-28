@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"image"
 	"image/color"
 	"image/png"
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -17,16 +17,6 @@ import (
 	"github.com/fogleman/gg"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang/freetype/truetype"
-)
-
-const (
-	scale        = 1
-	canvasWidth  = 1133.0 * scale
-	canvasHeight = 2016.0 * scale
-	zoomFactor   = 0.88
-	baseFontSize = 35
-	baseGap      = 60 * scale
-	fontSize     = baseFontSize * scale
 )
 
 type MetadataType struct {
@@ -51,6 +41,18 @@ func main() {
 		rotateAngle := 0.0
 		rotateAngle, err = strconv.ParseFloat(c.FormValue("rotateAngle"), 64)
 
+		scale := 1.0
+		scale, err = strconv.ParseFloat(c.FormValue("scale"), 64)
+
+		var (
+			canvasWidth  = 1133.0 * scale
+			canvasHeight = 2016.0 * scale
+			zoomFactor   = 0.88
+			baseFontSize = 35.0
+			baseGap      = 60 * scale
+			fontSize     = baseFontSize * scale
+		)
+
 		dc := gg.NewContext(int(canvasWidth), int(canvasHeight))
 		fontBytes, err := ioutil.ReadFile("fonts/SFPRODISPLAYREGULAR.ttf")
 		if err != nil {
@@ -66,67 +68,38 @@ func main() {
 		dc.DrawRectangle(0, 0, canvasWidth, canvasHeight)
 		dc.Fill()
 
-		// multipart.FileHeader to image.Image
+		r, _ := regexp.Compile(`(?m)^.*\.(jpg|JPG|png|PNG)$`)
 
-		// check path exist
-		_, err = os.Stat("uploads")
-		if os.IsNotExist(err) {
-			errDir := os.MkdirAll("uploads", 0755)
-			if errDir != nil {
-				return c.Status(fiber.StatusBadRequest).SendString(err.Error())
-			}
+		if !r.MatchString(imagePayload.Filename) {
+			return c.Status(fiber.StatusBadRequest).SendString("Invalid file type")
 		}
 
-		// check image type
-		// imageDecodedFromForm, _, err := image.Decode(imagePayload)
-		// bufferPng := new(bytes.Buffer)
-		// if err := png.Encode(bufferPng, imagePayload); err != nil {
-		// 	return nil, errors.Wrap(err, "unable to encode png")
-		// }
+		fileExtension := r.FindStringSubmatch(imagePayload.Filename)[1] // example jpg, png
+		fileName := fmt.Sprintf("%s.%s", time.Now().Format("20060102150405"), fileExtension)
+		folderPath := "uploads"
+		fileFullPath := fmt.Sprintf("%s/%s", folderPath, fileName)
 
-		// fileNamePayload := fmt.Sprintf("uploads/%s.png", time.Now().Format("20060102150405"))
-
-		// err = c.SaveFile(imagePayload, fileNamePayload)
-
-		imageFile, err := imagePayload.Open()
-		if err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+		// check if folder exists
+		if _, err := os.Stat(folderPath); os.IsNotExist(err) {
+			os.MkdirAll(folderPath, 0755)
 		}
-		defer imageFile.Close()
 
-		// multipart.File to image.Image
-		imageDecoded, _, err := image.Decode(imageFile)
-		if err != nil {
+		// save file to disk
+		if err := c.SaveFile(imagePayload, fileFullPath); err != nil {
 			return c.Status(fiber.StatusBadRequest).SendString(err.Error())
 		}
 
-		// convert image to png
-		bufferPng := new(bytes.Buffer)
-		if err := png.Encode(bufferPng, imageDecoded); err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
-		}
+		// get file extension from the file name
 
-		// flip image
-		imageDecoded = imaging.Rotate(imageDecoded, rotateAngle, nil)
-
-		// // Open Fle
-		// imageFile, err := os.Open("IMG_2807.jpg")
-		// if err != nil {
-		// 	return c.Status(fiber.StatusBadRequest).SendString(err.Error())
-		// }
-		// imageDecoded, _, err := image.Decode(imageFile)
-		// if err != nil {
-		// 	return c.Status(fiber.StatusBadRequest).SendString(err.Error())
-		// }
-		// imageDecoded = imaging.Rotate(imageDecoded, 270, color.Transparent)
-
-		// Get image metadata
 		et, err := exiftool.NewExiftool()
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer et.Close()
-		fileInfos := et.ExtractMetadata("IMG_2807.jpg")
+		fileInfos := et.ExtractMetadata(fileFullPath)
+
+		imageDecoded, err := imaging.Open(fileFullPath)
+		imageDecoded = imaging.Rotate(imageDecoded, rotateAngle, color.Transparent)
 
 		metadataObject := MetadataType{}
 
@@ -177,6 +150,7 @@ func main() {
 			c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}
 		c.Response().Header.Set("Content-Type", "image/png")
+		os.RemoveAll(fileFullPath)
 		return c.SendStream(buffer)
 	})
 
