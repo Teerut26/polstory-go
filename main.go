@@ -31,6 +31,8 @@ type MetadataType struct {
 func main() {
 	app := fiber.New()
 
+	app.Static("/", "./web")
+
 	app.Get("/image", func(c *fiber.Ctx) error {
 		imagePayload, err := c.FormFile("image")
 
