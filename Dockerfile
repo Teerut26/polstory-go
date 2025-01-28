@@ -22,7 +22,7 @@ RUN apk -U add exiftool
 WORKDIR /app
 
 COPY --from=builder /app/main .
-COPY --from=builder /app/fonts /fonts
+COPY --from=builder /app/fonts/ .
 
 EXPOSE 3000
 
