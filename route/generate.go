@@ -153,18 +153,38 @@ func GenerateHandler(c *fiber.Ctx) error {
 			fmt.Printf("Error concerning %v: %v\n", fileInfo.File, fileInfo.Err)
 			continue
 		}
+		log.Print("\n\n")
+		log.Printf("FileName: %v", fileInfo.File)
+		log.Printf("DateTimeOriginal: %v", fileInfo.Fields["DateTimeOriginal"])
+		log.Printf("CameraModelName: %v", fileInfo.Fields["CameraModelName"])
+		log.Printf("Model: %v", fileInfo.Fields["Model"])
+		log.Printf("FocalLengthIn35mmFormat: %v", fileInfo.Fields["FocalLengthIn35mmFormat"])
+		log.Printf("FocalLength: %v", fileInfo.Fields["FocalLength"])
+		log.Printf("Aperture: %v", fileInfo.Fields["Aperture"])
+		log.Printf("ShutterSpeed: %v", fileInfo.Fields["ShutterSpeed"])
+		log.Printf("ISO: %v", fileInfo.Fields["ISO"])
 
-		if fileInfo.Fields["DateTimeOriginal"] == nil || fileInfo.Fields["Model"] == nil || fileInfo.Fields["FocalLengthIn35mmFormat"] == nil || fileInfo.Fields["Aperture"] == nil || fileInfo.Fields["ShutterSpeed"] == nil || fileInfo.Fields["ISO"] == nil {
+		if fileInfo.Fields["DateTimeOriginal"] == nil || fileInfo.Fields["Aperture"] == nil || fileInfo.Fields["ShutterSpeed"] == nil || fileInfo.Fields["ISO"] == nil {
 			continue
 		}
 
 		metadataObject = MetadataType{
-			DateTimeOriginal:        fileInfo.Fields["DateTimeOriginal"].(string),
-			Model:                   fileInfo.Fields["Model"].(string),
-			FocalLengthIn35mmFormat: fileInfo.Fields["FocalLengthIn35mmFormat"].(string),
-			Aperture:                fileInfo.Fields["Aperture"].(float64),
-			ShutterSpeed:            fileInfo.Fields["ShutterSpeed"].(string),
-			ISO:                     fileInfo.Fields["ISO"].(float64),
+			DateTimeOriginal: fileInfo.Fields["DateTimeOriginal"].(string),
+			Aperture:         fileInfo.Fields["Aperture"].(float64),
+			ShutterSpeed:     fileInfo.Fields["ShutterSpeed"].(string),
+			ISO:              fileInfo.Fields["ISO"].(float64),
+		}
+
+		if fileInfo.Fields["CameraModelName"] != nil {
+			metadataObject.Model = fileInfo.Fields["CameraModelName"].(string)
+		} else {
+			metadataObject.Model = fileInfo.Fields["Model"].(string)
+		}
+
+		if fileInfo.Fields["FocalLengthIn35mmFormat"] != nil {
+			metadataObject.FocalLengthIn35mmFormat = fileInfo.Fields["FocalLengthIn35mmFormat"].(string)
+		} else {
+			metadataObject.FocalLengthIn35mmFormat = fileInfo.Fields["FocalLength"].(string)
 		}
 	}
 
