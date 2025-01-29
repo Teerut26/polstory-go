@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/barasher/go-exiftool"
@@ -26,6 +28,10 @@ type MetadataType struct {
 	Aperture                float64
 	ShutterSpeed            string
 	ISO                     float64
+	GeolocationRegion       string
+	GeolocationSubregion    string
+	GeolocationCity         string
+	GeolocationCountry      string
 }
 
 func GenerateHandler(c *fiber.Ctx) error {
@@ -161,6 +167,39 @@ func GenerateHandler(c *fiber.Ctx) error {
 			ISO:                     fileInfo.Fields["ISO"].(float64),
 		}
 	}
+
+	// get location from extool
+
+	out, err := exec.Command("exiftool", "-api", "geolocation", `"-geolocation*"`, fileFullPath).Output()
+	if err != nil {
+		log.Print(err)
+	}
+	outputString := strings.Split(string(out), "\n")
+	for _, line := range outputString {
+		key := strings.Trim(strings.Split(line, ":")[0], " ")
+		if len(key) == 0 {
+			continue
+		}
+		if key == "Geolocation City" || key == "Geolocation Region" || key == "Geolocation Country" || key == "Geolocation Subregion" {
+			value := strings.Trim(strings.Split(line, ":")[1], " ")
+			if len(value) == 0 {
+				continue
+			}
+			switch key {
+			case "Geolocation City":
+				metadataObject.GeolocationCity = value
+			case "Geolocation Region":
+				metadataObject.GeolocationRegion = value
+			case "Geolocation Country":
+				metadataObject.GeolocationCountry = value
+			case "Geolocation Subregion":
+				metadataObject.GeolocationSubregion = value
+			default:
+				continue
+			}
+		}
+	}
+
 	fmt.Println(metadataObject)
 
 	wrh := float64(imageDecoded.Bounds().Dx()) / float64(imageDecoded.Bounds().Dy())
@@ -188,7 +227,19 @@ func GenerateHandler(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	dc.DrawString(fmt.Sprintf("%s", t.Format("Jan 2, 2006 15:04")), xOffset+6*scale, yOffset+newHeight+baseGap+45*scale)
+	// locationFormat := fmt.Sprintf("  %s, %s, %s", metadataObject.GeolocationCity, metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
+	locationFormat := fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
+	// if metadataObject.GeolocationCity == "" || metadataObject.GeolocationRegion == "" {
+	// 	locationFormat = ""
+	// } else if metadataObject.GeolocationCity == metadataObject.GeolocationRegion {
+	// 	locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
+	// }
+	if metadataObject.GeolocationCity == "" || metadataObject.GeolocationRegion == "" {
+		locationFormat = ""
+	}
+
+	// dc.DrawString(fmt.Sprintf("%s%s", t.Format("Jan 2, 2006 15:04"), locationFormat), xOffset+6*scale, yOffset+newHeight+baseGap+45*scale)
+	dc.DrawString(fmt.Sprintf("%s%s", t.Format("Jan 2, 2006"), locationFormat), xOffset+6*scale, yOffset+newHeight+baseGap+45*scale)
 	imageResult := dc.Image()
 	buffer := new(bytes.Buffer)
 	if err := png.Encode(buffer, imageResult); err != nil {
