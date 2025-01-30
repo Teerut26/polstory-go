@@ -247,8 +247,14 @@ func GenerateHandler(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
+
+	var locationFormat string
+	if metadataObject.GeolocationCountry == "Thailand" {
+		locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationCity, metadataObject.GeolocationRegion)
+	} else {
+		locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
+	}
 	// locationFormat := fmt.Sprintf("  %s, %s, %s", metadataObject.GeolocationCity, metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
-	locationFormat := fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
 	// if metadataObject.GeolocationCity == "" || metadataObject.GeolocationRegion == "" {
 	// 	locationFormat = ""
 	// } else if metadataObject.GeolocationCity == metadataObject.GeolocationRegion {
