@@ -250,6 +250,9 @@ func GenerateHandler(c *fiber.Ctx) error {
 
 	var locationFormat string
 	if metadataObject.GeolocationCountry == "Thailand" {
+		if metadataObject.GeolocationCity == metadataObject.GeolocationRegion {
+			locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
+		}
 		locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationCity, metadataObject.GeolocationRegion)
 	} else {
 		locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
