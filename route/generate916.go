@@ -21,20 +21,7 @@ import (
 	"github.com/golang/freetype/truetype"
 )
 
-type MetadataType struct {
-	DateTimeOriginal        string
-	Model                   string
-	FocalLengthIn35mmFormat string
-	Aperture                float64
-	ShutterSpeed            string
-	ISO                     float64
-	GeolocationRegion       string
-	GeolocationSubregion    string
-	GeolocationCity         string
-	GeolocationCountry      string
-}
-
-func GenerateHandler(c *fiber.Ctx) error {
+func Generate916Handler(c *fiber.Ctx) error {
 	imagePayload, err := c.FormFile("image")
 
 	if err != nil {

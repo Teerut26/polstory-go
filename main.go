@@ -21,7 +21,9 @@ func main() {
 	app.Static("/", "./web")
 
 	apiGroup := app.Group("/api")
-	apiGroup.Post("/generate", route.GenerateHandler)
+
+	apiGroup.Post("/916/generate", route.Generate916Handler)
+	apiGroup.Post("/45/generate", route.Generate45Handler)
 
 	log.Fatal(app.Listen(":3000"))
 	log.Println("Server is running on port 3000")

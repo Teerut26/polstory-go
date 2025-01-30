@@ -6,6 +6,7 @@ import toast from "react-hot-toast"
 export default function App() {
     const [isLoaded, setIsLoaded] = useState(false)
     const [imageData, setImageData] = useState<string | null>(null)
+    const [check45, setCheck45] = useState(false)
     const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         const form = e.currentTarget as HTMLFormElement
@@ -20,7 +21,8 @@ export default function App() {
 
         setIsLoaded(true)
         try {
-            const res = await axiosAPI.post('/api/generate', data, {
+            const urlApi = check45 ? '/api/45/generate' : '/api/916/generate'
+            const res = await axiosAPI.post(urlApi, data, {
                 responseType: 'blob'
             })
             const url = URL.createObjectURL(res.data)
@@ -48,14 +50,22 @@ export default function App() {
                 </h1>
                 <form onSubmit={onSubmit} className="flex flex-col w-full">
                     <input type="file" name="file" accept=".jpg, .jpeg, .png, .JPEG, .JPG, .PNG" className="text-zinc-400 cursor-pointer" />
-                    <div className="flex gap-2 mt-3">
-                        <div className="flex flex-col w-full">
-                            <div>Rotate Angle</div>
-                            <input type="number" name="rotateAngle" className="border px-2 py-1 rounded-lg focus:outline-none w-full" placeholder="Rotate Angle" defaultValue={0} />
+                    <div className="flex flex-col w-full">
+                        <div className="flex gap-2 mt-3">
+                            <div className="flex flex-col w-full">
+                                <div>Rotate Angle</div>
+                                <input type="number" name="rotateAngle" className="border px-2 py-1 rounded-lg focus:outline-none w-full" placeholder="Rotate Angle" defaultValue={0} />
+                            </div>
+                            <div className="flex flex-col w-full">
+                                <div>Scale</div>
+                                <input type="number" name="scale" className="border px-2 py-1 rounded-lg focus:outline-none w-full" placeholder="Scale" defaultValue={1} />
+                            </div>
                         </div>
-                        <div className="flex flex-col w-full">
-                            <div>Scale</div>
-                            <input type="number" name="scale" className="border px-2 py-1 rounded-lg focus:outline-none w-full" placeholder="Scale" defaultValue={1} />
+                        <div className="flex gap-2 mt-3">
+                            <div className="flex justify-start gap-1" onClick={() => setCheck45(!check45)}>
+                                <input type="checkbox" checked={check45} onChange={() => setCheck45(!check45)} />
+                                <div>4:5</div>
+                            </div>
                         </div>
                     </div>
                     <button
