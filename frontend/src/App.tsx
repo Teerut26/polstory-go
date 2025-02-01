@@ -6,6 +6,7 @@ import toast from "react-hot-toast"
 export default function App() {
     const [isLoaded, setIsLoaded] = useState(false)
     const [imageData, setImageData] = useState<string | null>(null)
+    const [percentUpload, setPercentUpload] = useState(0)
     const [check45, setCheck45] = useState(false)
     const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -23,7 +24,10 @@ export default function App() {
         try {
             const urlApi = check45 ? '/api/45/generate' : '/api/916/generate'
             const res = await axiosAPI.post(urlApi, data, {
-                responseType: 'blob'
+                responseType: 'blob',
+                onUploadProgress: (e) => {
+                    setPercentUpload(Math.round((e.loaded * 100) / (e.total ?? 1)))
+                }
             })
             const url = URL.createObjectURL(res.data)
             setImageData(url)
@@ -72,7 +76,9 @@ export default function App() {
                         disabled={isLoaded}
                         className="px-3 py-2 bg-cyan-700 text-white mt-3 rounded-3xl hover:bg-cyan-800 cursor-pointer duration-150 disabled:opacity-50 w-full"
                     >
-                        {isLoaded ? 'Generating...' : 'Generate'}
+                        {isLoaded ? <>
+                            {percentUpload !== 100 ? `Uploading ${percentUpload}%` : 'Generating...'}
+                        </> : 'Generate'}
                     </button>
                 </form>
                 {imageData && <img src={imageData} alt="" className="border mt-3" />}
