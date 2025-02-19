@@ -245,12 +245,6 @@ func Generate916Handler(c *fiber.Ctx) error {
 	} else {
 		locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
 	}
-	// locationFormat := fmt.Sprintf("  %s, %s, %s", metadataObject.GeolocationCity, metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
-	// if metadataObject.GeolocationCity == "" || metadataObject.GeolocationRegion == "" {
-	// 	locationFormat = ""
-	// } else if metadataObject.GeolocationCity == metadataObject.GeolocationRegion {
-	// 	locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
-	// }
 	if metadataObject.GeolocationCity == "" || metadataObject.GeolocationRegion == "" {
 		locationFormat = ""
 	}
