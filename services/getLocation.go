@@ -31,6 +31,8 @@ func GetLocation(latitude, longitude float64) (string, error) {
 	if geocodeErr != nil {
 		return "", geocodeErr
 	}
+
+	city := string(geocodeResponse[len(geocodeResponse)-5].AddressComponents[0].LongName)
 	subregion := strings.Replace(string(geocodeResponse[len(geocodeResponse)-3].AddressComponents[0].LongName), " District", "", -1)
 	region := string(geocodeResponse[len(geocodeResponse)-2].AddressComponents[0].LongName)
 	country := string(geocodeResponse[len(geocodeResponse)-1].AddressComponents[0].LongName)
@@ -38,7 +40,7 @@ func GetLocation(latitude, longitude float64) (string, error) {
 	var locationFormat string
 	if country == "Thailand" {
 		if subregion == region {
-			locationFormat = fmt.Sprintf("  %s, %s", region, country)
+			locationFormat = fmt.Sprintf("  %s, %s", city, subregion)
 		} else {
 			locationFormat = fmt.Sprintf("  %s, %s", subregion, region)
 		}
