@@ -11,4 +11,6 @@ type MetadataType struct {
 	GeolocationSubregion    string
 	GeolocationCity         string
 	GeolocationCountry      string
+	GPSLatitude             float64
+	GPSLongitude            float64
 }

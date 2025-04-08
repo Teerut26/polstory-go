@@ -9,10 +9,8 @@ import (
 	"log"
 	"math"
 	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/barasher/go-exiftool"
@@ -20,6 +18,7 @@ import (
 	"github.com/fogleman/gg"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang/freetype/truetype"
+	"github.com/teerut26/polstory-go/services"
 )
 
 func Generate45Handler(c *fiber.Ctx) error {
@@ -178,37 +177,14 @@ func Generate45Handler(c *fiber.Ctx) error {
 
 	// get location from extool
 
-	out, err := exec.Command("exiftool", "-api", "geolocation", `"-geolocation*"`, fileFullPath).Output()
+	latitude, longitude, err := services.GetCoordinate(fileFullPath)
 	if err != nil {
-		log.Print(err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
-	outputString := strings.Split(string(out), "\n")
-	for _, line := range outputString {
-		key := strings.Trim(strings.Split(line, ":")[0], " ")
-		if len(key) == 0 {
-			continue
-		}
-		if key == "Geolocation City" || key == "Geolocation Region" || key == "Geolocation Country" || key == "Geolocation Subregion" {
-			value := strings.Trim(strings.Split(line, ":")[1], " ")
-			if len(value) == 0 {
-				continue
-			}
-			switch key {
-			case "Geolocation City":
-				metadataObject.GeolocationCity = value
-			case "Geolocation Region":
-				metadataObject.GeolocationRegion = value
-			case "Geolocation Country":
-				metadataObject.GeolocationCountry = value
-			case "Geolocation Subregion":
-				metadataObject.GeolocationSubregion = value
-			default:
-				continue
-			}
-		}
-	}
-
-	fmt.Println(metadataObject)
+	metadataObject.GPSLatitude = latitude
+	metadataObject.GPSLongitude = longitude
 
 	maxHeight := 1400 * scale
 	wrh := float64(imageDecoded.Bounds().Dx()) / float64(imageDecoded.Bounds().Dy())
@@ -253,28 +229,15 @@ func Generate45Handler(c *fiber.Ctx) error {
 		})
 	}
 
-	var locationFormat string
-	if metadataObject.GeolocationCountry == "Thailand" {
-		if metadataObject.GeolocationCity == metadataObject.GeolocationRegion {
-			locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
-		} else {
-			locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationCity, metadataObject.GeolocationRegion)
-		}
-	} else {
-		locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
-	}
-	// locationFormat := fmt.Sprintf("  %s, %s, %s", metadataObject.GeolocationCity, metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
-	// if metadataObject.GeolocationCity == "" || metadataObject.GeolocationRegion == "" {
-	// 	locationFormat = ""
-	// } else if metadataObject.GeolocationCity == metadataObject.GeolocationRegion {
-	// 	locationFormat = fmt.Sprintf("  %s, %s", metadataObject.GeolocationRegion, metadataObject.GeolocationCountry)
-	// }
-	if metadataObject.GeolocationCity == "" || metadataObject.GeolocationRegion == "" {
-		locationFormat = ""
+	location, locationErr := services.GetLocation(metadataObject.GPSLatitude, metadataObject.GPSLongitude)
+	if locationErr != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": locationErr.Error(),
+		})
 	}
 
 	// dc.DrawString(fmt.Sprintf("%s%s", t.Format("Jan 2, 2006 15:04"), locationFormat), xOffset+6*scale, yOffset+newHeight+baseGap+45*scale)
-	dc.DrawString(fmt.Sprintf("%s%s", t.Format("Jan 2, 2006"), locationFormat), xOffset+6*scale, yOffset+newHeight+baseGap+45*scale)
+	dc.DrawString(fmt.Sprintf("%s%s", t.Format("Jan 2, 2006"), location), xOffset+6*scale, yOffset+newHeight+baseGap+45*scale)
 	imageResult := dc.Image()
 	buffer := new(bytes.Buffer)
 	if err := png.Encode(buffer, imageResult); err != nil {

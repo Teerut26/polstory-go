@@ -5,10 +5,16 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/joho/godotenv"
 	"github.com/teerut26/polstory-go/route"
 )
 
 func main() {
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Println("Warning: No .env file found")
+	}
+
 	app := fiber.New(fiber.Config{
 		BodyLimit: 1024 * 1024 * 20, // 10mb
 	})
