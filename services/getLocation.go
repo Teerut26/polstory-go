@@ -37,7 +37,11 @@ func GetLocation(latitude, longitude float64) (string, error) {
 
 	var locationFormat string
 	if country == "Thailand" {
-		locationFormat = fmt.Sprintf("  %s, %s", subregion, region)
+		if subregion == region {
+			locationFormat = fmt.Sprintf("  %s, %s", region, country)
+		} else {
+			locationFormat = fmt.Sprintf("  %s, %s", subregion, region)
+		}
 	} else {
 		locationFormat = fmt.Sprintf("  %s, %s", region, country)
 	}
