@@ -1,0 +1,24 @@
+name: Cleanup Old GHCR Images
+
+on:
+    schedule:
+        # Runs every Sunday at 00:00 UTC
+        - cron: "0 0 * * 0"
+    workflow_dispatch: # Allows you to trigger it manually
+
+jobs:
+    cleanup:
+        runs-on: ubuntu-latest
+        permissions:
+            packages: write # Critical: Allows the action to delete images
+
+        steps:
+            - name: Delete Old Images
+              uses: dataaxiom/ghcr-cleanup-action@v1
+              with:
+                  # Keep the last 5 tagged images
+                  keep-n-tagged: 5
+                  # Delete all untagged images (except multi-arch children)
+                  keep-n-untagged: 0
+                  # Safe mode: Change to false when you are ready to delete
+                  dry-run: false
